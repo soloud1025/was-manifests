@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ing-was
+  namespace: ksh-app
+  annotations:
+    alb.ingress.kubernetes.io/group.name: ksh-app
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+    # ★ 핵심: WAS용 TargetGroup 헬스체크 설정
+    alb.ingress.kubernetes.io/healthcheck-path: /api/ping
+    alb.ingress.kubernetes.io/success-codes: "200-499"
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=10
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: was-svc
+            port:
+              number: 8000
