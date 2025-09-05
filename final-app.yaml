@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ksh-app
+---
+# (삭제됨) 기존 redis ExternalName 별칭은 혼동 방지를 위해 제거
+# 앱은 직접 my-redis-master.caching.svc.cluster.local 로 접속
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: ksh-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: web }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: web
+        image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-web-app:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "500m", memory: "512Mi" }
+        readinessProbe:
+          httpGet: { path: "/", port: 80 }
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: "/", port: 80 }
+          initialDelaySeconds: 15
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: ksh-app
+spec:
+  selector: { app: web }
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: was
+  namespace: ksh-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: was }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels: { app: was }
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: was
+        image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:0.4
+        ports:
+        - containerPort: 8000
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "500m", memory: "512Mi" }
+        command: ["/bin/sh","-lc"]
+        # Gunicorn 타깃은 app:app
+        args: ["exec gunicorn -w 2 -k gthread -b 0.0.0.0:8000 app:app"]
+
+        # === Redis 세션: 'my-redis-master' 서비스 FQDN으로 직접 연결 ===
+        env:
+        - name: SESSION_TYPE
+          value: redis
+        - name: SESSION_REDIS
+          value: redis://my-redis-master.caching.svc.cluster.local:6379/0
+        - name: REDIS_URL
+          value: redis://my-redis-master.caching.svc.cluster.local:6379/0
+        # ------------------------------------------------------------------
+        # (선택) 마스터 파드 DNS로 고정 연결이 꼭 필요하면 아래를 사용 (비권장)
+        # - name: SESSION_REDIS
+        #   value: redis://my-redis-master-0.my-redis-headless.caching.svc.cluster.local:6379/0
+        # - name: REDIS_URL
+        #   value: redis://my-redis-master-0.my-redis-headless.caching.svc.cluster.local:6379/0
+        # ------------------------------------------------------------------
+
+        # TG 헬스체크(/api/ping)와 맞추면 전환이 더 부드러움
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh","-c","sleep 10"]
+        readinessProbe:
+          httpGet:
+            path: /api/ping
+            port: 8000
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket: { port: 8000 }
+          initialDelaySeconds: 15
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: was-svc
+  namespace: ksh-app
+spec:
+  selector: { app: was }
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-hpa
+  namespace: ksh-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: was-hpa
+  namespace: ksh-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: was
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
