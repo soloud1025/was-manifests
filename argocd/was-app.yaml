@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: was-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/soloud1025/was-manifests.git'   # ✅ 네 manifests repo
+    targetRevision: main
+    path: .                                                     # final-app.yaml, ing-was.yaml이 있는 위치
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: ksh-app                                          # 앱이 배포될 네임스페이스
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
