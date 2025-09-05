@@ -1,0 +1,81 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ksh-eks                 # ← 그대로 사용
+  region: ap-northeast-2
+  version: "1.33"
+
+availabilityZones:
+  - ap-northeast-2a
+  - ap-northeast-2c
+
+vpc:
+  nat:
+    gateway: HighlyAvailable    # AZ별 NAT GW 생성
+
+iam:
+  withOIDC: true
+  # EBS CSI 컨트롤러에 필요한 IAM 역할을 IRSA로 자동 부여
+  serviceAccounts:
+    - metadata:
+        name: ebs-csi-controller-sa
+        namespace: kube-system
+      wellKnownPolicies:
+        ebsCSIController: true
+
+# 필수/권장 EKS Managed Addons
+addons:
+  - name: vpc-cni
+  - name: kube-proxy
+  - name: coredns
+  - name: aws-ebs-csi-driver     # EBS 동적 프로비저닝
+
+managedNodeGroups:
+  # 1) 앱용(웹/was) 일반 노드그룹
+  - name: app-ng-a
+    instanceType: t3.medium
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 6
+    privateNetworking: true
+    amiFamily: AmazonLinux2023
+    volumeSize: 50
+    labels:
+      nodepool: app
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  # 2) Redis 전용 노드그룹 (태인트로 격리)
+  - name: redis-ng-a
+    instanceType: t3.medium
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 3
+    privateNetworking: true
+    amiFamily: AmazonLinux2023
+    volumeSize: 50
+    labels:
+      nodepool: redis
+    taints:
+      - key: workload
+        value: redis
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        ebs: true
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - api
+      - audit
+      - authenticator
+      - controllerManager
+      - scheduler
