@@ -80,7 +80,10 @@ spec:
             limits: {cpu: "500m", memory: "512Mi"}
           command: ["/bin/sh", "-lc"]
           args: ["exec gunicorn -w 2 -k gthread -b 0.0.0.0:8000 app:app"]
-          env:
+          envFrom:                           # ✅ Secret 전체를 환경변수로 등록
+            - secretRef:
+                name: was-db
+          env:                                # ✅ 기존 환경변수 유지
             - name: SESSION_TYPE
               value: redis
             - name: SESSION_REDIS
@@ -155,11 +158,4 @@ spec:
         target:
           type: Utilization
           averageUtilization: 60
-
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - ing-was.yaml
-  - was-db-secret.yaml    # 👈 새로 추가한 이 줄
-  - deployment.yaml       # (예: 실제 Deployment 정의 파일)
 
