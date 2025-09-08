@@ -96,7 +96,7 @@ spec:
                 command: ["/bin/sh", "-c", "sleep 10"]
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/ping
               port: 8000
             initialDelaySeconds: 2
             periodSeconds: 5
