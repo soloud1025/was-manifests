@@ -192,3 +192,4 @@ metadata:
 type: Opaque
 stringData:
   DB_URL: mysql+pymysql://admin:soldesk901@project-db.c94ss824as09.ap-northeast-2.rds.amazonaws.com:3306/project?charset=utf8mb4
+  CF_ORIGIN: "http://d2t0bqjo6z9dqg.cloudfront.net"
