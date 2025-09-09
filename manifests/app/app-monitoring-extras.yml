@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/dgpark3675/Soldout.git
+    repoURL: https://github.com/soloud1025/was-manifests.git
     targetRevision: main
     path: manifests/monitoring/extras
     directory:
@@ -18,3 +18,4 @@ spec:
     automated:
       prune: true
       selfHeal: true
+
