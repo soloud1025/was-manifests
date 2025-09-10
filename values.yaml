@@ -1,0 +1,8 @@
+# values.yaml (루트에 있는 상태 그대로 사용 가능)
+grafana:
+  adminPassword: soloud01!
+  service:
+    type: LoadBalancer
+prometheus:
+  service:
+    type: LoadBalancer
