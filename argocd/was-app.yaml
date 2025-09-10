@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/soloud1025/was-manifests.git'   # manifests repo
+    repoURL: 'https://github.com/soloud1025/was-manifests.git'   
     targetRevision: main
     path: .                                                     # final-app.yaml, ing-was.yaml이 있는 위치
   destination:
