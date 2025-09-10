@@ -1,0 +1,44 @@
+grafana:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+    path: /grafana
+    pathType: Prefix
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s/grafana/"
+  service:
+    enabled: true
+    port: 80
+
+prometheus:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+    path: /prometheus
+    pathType: Prefix
+  service:
+    enabled: true
+    port: 9090
+
+alertmanager:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+    path: /alertmanager
+    pathType: Prefix
+  service:
+    enabled: true
+    port: 9093
