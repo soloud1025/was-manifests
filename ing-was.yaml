@@ -1,26 +1,64 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: was-ingress
+  name: app-ing-was
   namespace: ksh-app
   annotations:
-    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/group.name: ksh-app
+    alb.ingress.kubernetes.io/group.order: "10"            # WAS 우선
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: ksh-app
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    alb.ingress.kubernetes.io/healthcheck-path: /api/ping
-    alb.ingress.io/success-codes: "200-499"
-    alb.ingress.kubernetes.io/healthcheck-port: "8000"
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=10
+
+    # 헬스체크: 루트 + 200~499
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/success-codes: "200-499"
+
+    # /api/ping 은 ALB가 고정 200
+    alb.ingress.kubernetes.io/actions.ping-200: >-
+      {"Type":"fixed-response","FixedResponseConfig":{"ContentType":"text/plain","MessageBody":"ok","StatusCode":"200"}}
+
+    # /api 및 /api/는 /api/ping 으로 302 리다이렉트
+    alb.ingress.kubernetes.io/actions.api-root-302: >-
+      {"Type":"redirect","RedirectConfig":{"StatusCode":"HTTP_302","Path":"/api/ping"}}
 spec:
   ingressClassName: alb
   rules:
-    - http:
-        paths:
-          - path: /api/*
-            pathType: Prefix
-            backend:
-              service:
-                name: was-svc
-                port:
-                  number: 8000
+  - http:
+      paths:
+      # 정확히 /api -> /api/ping (리다이렉트)
+      - path: /api
+        pathType: Exact
+        backend:
+          service:
+            name: api-root-302
+            port:
+              name: use-annotation
+
+      # 정확히 /api/ -> /api/ping (리다이렉트)
+      - path: /api/
+        pathType: Exact
+        backend:
+          service:
+            name: api-root-302
+            port:
+              name: use-annotation
+
+      # /api/ping -> 고정 200
+      - path: /api/ping
+        pathType: Exact
+        backend:
+          service:
+            name: ping-200
+            port:
+              name: use-annotation
+
+      # /api/* -> WAS 서비스로 포워드
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: was-svc
+            port:
+              number: 8000
+
