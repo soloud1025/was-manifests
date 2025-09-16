@@ -55,14 +55,13 @@ spec:
                   - sleep 10
           readinessProbe:
             httpGet:
-              path: /healthz # ✅ 변경됨
+              path: /api/ping 
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 3
           livenessProbe:
-            httpGet: # ✅ tcpSocket 대신 httpGet
-              path: /healthz
+            tcpSocket: 
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 10
