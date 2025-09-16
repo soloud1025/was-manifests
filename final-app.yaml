@@ -20,52 +20,52 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: was
-        image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:ad1f1c8a7c26941a5bb1a8cfa55f951b720faf2c
-        ports:
-        - containerPort: 8000
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
-        command:
-        - /bin/sh
-        - -lc
-        args:
-        - exec gunicorn -w 2 -k gthread -b 0.0.0.0:8000 app:app
-        envFrom:
-        - secretRef:
-            name: was-db
-        env:
-        - name: SESSION_TYPE
-          value: redis
-        - name: SESSION_REDIS
-          value: redis://my-redis-master.caching.svc.cluster.local:6379/0
-        - name: REDIS_URL
-          value: redis://my-redis-master.caching.svc.cluster.local:6379/0
-        lifecycle:
-          preStop:
-            exec:
-              command:
-              - /bin/sh
-              - -c
-              - sleep 10
-        readinessProbe:
-          httpGet:
-            path: /healthz      # ✅ 변경됨
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          failureThreshold: 3
-        livenessProbe:
-          httpGet:             # ✅ tcpSocket 대신 httpGet
-            path: /healthz
-            port: 8000
-          initialDelaySeconds: 15
-          periodSeconds: 10
+        - name: was
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:0834b0b5f8efef9abef4a181407986d03e50249c
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          command:
+            - /bin/sh
+            - -lc
+          args:
+            - exec gunicorn -w 2 -k gthread -b 0.0.0.0:8000 app:app
+          envFrom:
+            - secretRef:
+                name: was-db
+          env:
+            - name: SESSION_TYPE
+              value: redis
+            - name: SESSION_REDIS
+              value: redis://my-redis-master.caching.svc.cluster.local:6379/0
+            - name: REDIS_URL
+              value: redis://my-redis-master.caching.svc.cluster.local:6379/0
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - sleep 10
+          readinessProbe:
+            httpGet:
+              path: /healthz # ✅ 변경됨
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: # ✅ tcpSocket 대신 httpGet
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -89,29 +89,29 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-      - name: web
-        image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-web-app:latest
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 15
-          periodSeconds: 10
+        - name: web
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-web-app:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -126,12 +126,15 @@ spec:
   minReplicas: 2
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 60
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -146,18 +149,24 @@ spec:
   minReplicas: 2
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 60
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ksh-app
-spec: {}
+spec:
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Service
@@ -169,8 +178,11 @@ spec:
     app: was
   type: ClusterIP
   ports:
-  - port: 8000
-    targetPort: 8000
+    - port: 8000
+      targetPort: 8000
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Service
@@ -182,8 +194,11 @@ spec:
     app: web
   type: ClusterIP
   ports:
-  - port: 80
-    targetPort: 80
+    - port: 80
+      targetPort: 80
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Secret
@@ -194,3 +209,7 @@ type: Opaque
 stringData:
   DB_URL: mysql+pymysql://admin:soldesk901@project-db.c94ss824as09.ap-northeast-2.rds.amazonaws.com:3306/project?charset=utf8mb4
   CF_ORIGIN: "http://52plus.store"
+spec:
+  template:
+    spec:
+      containers: []
