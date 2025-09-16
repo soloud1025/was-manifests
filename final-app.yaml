@@ -21,7 +21,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: was
-          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:419e8d07cde1702a1b6a63534cc42389469083e3
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:5d6c7e46d19ffead029c274632ee5a59dc787182
           ports:
             - containerPort: 8000
           resources:
