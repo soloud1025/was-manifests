@@ -21,7 +21,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: was
-          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:4fc267dc68cf4d552db5a5c923f23e4badca4bcf
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:afacd27616d18e6410aafb10b423384f30e34036
           ports:
             - containerPort: 8000
           resources:
@@ -55,13 +55,13 @@ spec:
                   - sleep 10
           readinessProbe:
             httpGet:
-              path: /api/ping 
+              path: /api/ping
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 3
           livenessProbe:
-            tcpSocket: 
+            tcpSocket:
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 10
