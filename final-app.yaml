@@ -19,7 +19,7 @@ spec:
         app: was
     spec:
       nodeSelector:
-        nodepool: app # 👈 app 노드그룹에만 배치되도록 추가
+        nodepool: app
       terminationGracePeriodSeconds: 30
       containers:
         - name: was
