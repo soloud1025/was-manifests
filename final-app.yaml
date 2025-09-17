@@ -18,10 +18,12 @@ spec:
       labels:
         app: was
     spec:
+      nodeSelector:
+        nodepool: app          # 👈 app 노드그룹에만 배치되도록 추가
       terminationGracePeriodSeconds: 30
       containers:
         - name: was
-          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:3bc68212e9009ead3777ddf65b0d14b68a5c910d
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:ada89004fbbc13cb197ed7d0f89618a76cad511a
           ports:
             - containerPort: 8000
           resources:
@@ -86,6 +88,8 @@ spec:
       labels:
         app: web
     spec:
+      nodeSelector:
+        nodepool: app          # 👈 web도 app 노드그룹에만 배치
       terminationGracePeriodSeconds: 30
       containers:
         - name: web
