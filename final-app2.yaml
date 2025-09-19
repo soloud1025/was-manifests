@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: was
+  namespace: ksh-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: was
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: was
+    spec:
+      nodeSelector:
+        nodepool: app
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: was
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:65213a28c4b3e5532ecc31d9da2f014db0b6ad82
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          command:
+            - /bin/sh
+            - -lc
+          args:
+            - exec gunicorn -w 2 -k gthread -b 0.0.0.0:8000 app:app
+          envFrom:
+            - secretRef:
+                name: was-db
+          env:
+            - name: SESSION_TYPE
+              value: redis
+            - name: SESSION_REDIS
+              value: redis://my-redis-master.caching.svc.cluster.local:6379/0
+            - name: REDIS_URL
+              value: redis://my-redis-master.caching.svc.cluster.local:6379/0
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - sleep 10
+          readinessProbe:
+            httpGet:
+              path: /api/ping
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: was-hpa
+  namespace: ksh-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: was
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ksh-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: was-svc
+  namespace: ksh-app
+spec:
+  selector:
+    app: was
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: was-db
+  namespace: ksh-app
+type: Opaque
+stringData:
+  DB_URL: mysql+pymysql://admin:soldesk901@project-db.c94ss824as09.ap-northeast-2.rds.amazonaws.com:3306/project?charset=utf8mb4
+  CF_ORIGIN: "https://52plus.store"
