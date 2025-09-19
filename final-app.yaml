@@ -23,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: was
-          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:65213a28c4b3e5532ecc31d9da2f014db0b6ad82
+          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-was/flask-app:75c2308e0699fd63f580a9951a27ed6efdafa373
           ports:
             - containerPort: 8000
           resources:
@@ -87,11 +87,18 @@ spec:
         target:
           type: Utilization
           averageUtilization: 60
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ksh-app
+spec:
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Service
@@ -105,6 +112,9 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
+  template:
+    spec:
+      containers: []
 ---
 apiVersion: v1
 kind: Secret
@@ -115,3 +125,7 @@ type: Opaque
 stringData:
   DB_URL: mysql+pymysql://admin:soldesk901@project-db.c94ss824as09.ap-northeast-2.rds.amazonaws.com:3306/project?charset=utf8mb4
   CF_ORIGIN: "https://52plus.store"
+spec:
+  template:
+    spec:
+      containers: []
