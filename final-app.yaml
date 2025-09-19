@@ -68,54 +68,6 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 10
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: web
-  namespace: ksh-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: web
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
-  template:
-    metadata:
-      labels:
-        app: web
-    spec:
-      nodeSelector:
-        nodepool: app # 👈 web도 app 노드그룹에만 배치
-      terminationGracePeriodSeconds: 30
-      containers:
-        - name: web
-          image: 043902793737.dkr.ecr.ap-northeast-2.amazonaws.com/ksh-web-app:latest
-          ports:
-            - containerPort: 80
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 15
-            periodSeconds: 10
----
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -135,41 +87,11 @@ spec:
         target:
           type: Utilization
           averageUtilization: 60
-  template:
-    spec:
-      containers: []
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: web-hpa
-  namespace: ksh-app
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: web
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 60
-  template:
-    spec:
-      containers: []
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ksh-app
-spec:
-  template:
-    spec:
-      containers: []
 ---
 apiVersion: v1
 kind: Service
@@ -183,25 +105,6 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
-  template:
-    spec:
-      containers: []
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: web-svc
-  namespace: ksh-app
-spec:
-  selector:
-    app: web
-  type: ClusterIP
-  ports:
-    - port: 80
-      targetPort: 80
-  template:
-    spec:
-      containers: []
 ---
 apiVersion: v1
 kind: Secret
@@ -212,7 +115,3 @@ type: Opaque
 stringData:
   DB_URL: mysql+pymysql://admin:soldesk901@project-db.c94ss824as09.ap-northeast-2.rds.amazonaws.com:3306/project?charset=utf8mb4
   CF_ORIGIN: "https://52plus.store"
-spec:
-  template:
-    spec:
-      containers: []
